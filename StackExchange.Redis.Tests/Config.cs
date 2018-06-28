@@ -261,6 +261,38 @@ namespace StackExchange.Redis.Tests
         }
 
         [Fact]
+        public void WriteToSlave()
+        {
+            using(var mutex = Create())
+            {
+                var server = mutex.GetServer(TestConfig.Current.SlaveServerAndPort);
+                Assert.True(server.IsSlave);
+                var db = mutex.GetDatabase();
+                var ex = Assert.Throws<RedisCommandException>(() => db.StringSet(Me(), "Test", flags: CommandFlags.DemandSlave));
+                Assert.Equal("Command cannot be issued to a slave: SET", ex.Message);
+
+                server.AllowSlaveWrites = true;
+                Assert.True(db.StringSet(Me() + 2, "Test", flags: CommandFlags.DemandSlave));
+            }
+        }
+
+        [Fact]
+        public void WriteToSlaveDirectly()
+        {
+            using (var mutex = ConnectionMultiplexer.Connect(TestConfig.Current.SlaveServerAndPort))
+            {
+                var server = mutex.GetServer(TestConfig.Current.SlaveServerAndPort);
+                Assert.True(server.IsSlave);
+                var db = mutex.GetDatabase();
+                var ex = Assert.Throws<RedisConnectionException>(() => db.StringSet(Me(), "Test"));
+                Assert.StartsWith("No connection is available to service this operation:", ex.Message);
+
+                server.AllowSlaveWrites = true;
+                Assert.True(db.StringSet(Me() + 2, "Test"));
+            }
+        }
+
+        [Fact]
         public void TestAutomaticHeartbeat()
         {
             RedisValue oldTimeout = RedisValue.Null;
