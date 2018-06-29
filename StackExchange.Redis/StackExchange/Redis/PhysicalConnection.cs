@@ -600,7 +600,7 @@ namespace StackExchange.Redis
         internal void WakeWriterAndCheckForThrottle()
         {
             var flush = _ioPipe.Output.FlushAsync();
-            if (!flush.IsCompletedSuccessfully) flush.AsTask().Wait();
+            if (!flush.IsCompletedSuccessfully) flush.AsTask().ForAwait().GetAwaiter().GetResult();
         }
 
         static readonly byte[] NullBulkString = Encoding.ASCII.GetBytes("$-1\r\n"), EmptyBulkString = Encoding.ASCII.GetBytes("$0\r\n\r\n");
